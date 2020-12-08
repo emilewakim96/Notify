@@ -1,8 +1,10 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { NavController } from '@ionic/angular';
+import { AlertController, NavController, ToastController } from '@ionic/angular';
 import { Subscription } from 'rxjs';
 import { EventsService } from '../events.service';
 import { EventResponse } from '../interfaces';
+import { Network } from '@ngx-pwa/offline'
+import { SwUpdate, UpdateActivatedEvent, UpdateAvailableEvent } from '@angular/service-worker';
 
 @Component({
   selector: 'app-home',
@@ -11,18 +13,27 @@ import { EventResponse } from '../interfaces';
 })
 export class HomePage implements OnInit, OnDestroy {
 
-  events: EventResponse[] = [];
-  sub: Subscription;
+  events: EventResponse[] = []
+  subscriptions: Subscription[] = []
+  online$ = this.network.onlineChanges
 
-  constructor(private eventService: EventsService, private nav: NavController) {}
+  constructor(
+    private eventService: EventsService, 
+    private nav: NavController,
+    private network: Network,
+    private updater: SwUpdate,
+    private toastController: ToastController,
+    private alertController: AlertController) {}
 
   ngOnInit(): void {
-    this.sub = this.eventService.getAll()
-    .subscribe(e => this.events.push(e))
+    this.subscriptions.push(this.eventService.getAll()
+    .subscribe(e => this.events.push(e)))
+
+    this.initUpdater()
   }
 
   ngOnDestroy(): void {
-    this.sub.unsubscribe()
+    this.subscriptions.forEach(s => s.unsubscribe())
   }
 
   getEvents(): EventResponse[] {
@@ -31,5 +42,55 @@ export class HomePage implements OnInit, OnDestroy {
 
   details(response: EventResponse) {
     this.nav.navigateForward(`/details/${response.event.id}`)
+  }
+
+  initUpdater() {
+    this.subscriptions.push(this.updater.available.subscribe( e => this.onUpdateAvailable(e)))
+    this.subscriptions.push(this.updater.activated.subscribe( e => this.onUpdateActivated(e)))
+  }
+
+  async onUpdateActivated(event: UpdateActivatedEvent) {
+    await this.showToastMessage('Application updating.')
+  }
+
+  async onUpdateAvailable(event: UpdateAvailableEvent) {
+    const updateMessage = event.available.appData["updateMessage"]
+    console.log('A new version is available:', updateMessage)
+
+    const alert = await this .alertController.create({
+      header: 'Update Available!',
+      message: `A new version of the application is available.` + 
+      `(Details: ${updateMessage})` +
+      `Click OK to update now.`,
+      buttons: [
+        {
+          text: 'Not Now',
+          role: 'cancel',
+          cssClass: 'secondary',
+          handler: async() => {
+            this.showToastMessage('Update deferred')
+          }
+        }, {
+          text: 'OK',
+          handler: async() => {
+            await this.updater.activateUpdate()
+            window.location.reload()
+          }
+        }
+      ]
+    })
+
+    await alert.present()
+  }
+
+  async showToastMessage(msg: string) {
+    console.log(msg)
+    const toast = await this.toastController.create({
+      message: msg,
+      duration: 2000,
+      position: 'top',
+    })
+
+    toast.present()
   }
 }

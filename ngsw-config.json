@@ -1,6 +1,9 @@
 {
   "$schema": "./node_modules/@angular/service-worker/config/schema.json",
   "index": "/index.html",
+  "appData": {
+    "updateMessage": "Added a new page you will love"
+  },
   "assetGroups": [
     {
       "name": "app",
@@ -11,7 +14,8 @@
           "/index.html",
           "/manifest.webmanifest",
           "/*.css",
-          "/*.js"
+          "/*.js",
+          "/svg/**"
         ]
       }
     },
@@ -24,6 +28,37 @@
           "/assets/**",
           "/*.(eot|svg|cur|jpg|png|webp|gif|otf|ttf|woff|woff2|ani)"
         ]
+      }
+    }
+  ],
+  "dataGroups": [
+    {
+      "name": "emergency-calls",
+      "urls:": ["https://us-central1-ps-notify-api.cloudfunctions.net/api/event/*"],
+      "cacheConfig": {
+        "maxSize": 250,
+        "maxAge": "30d",
+        "strategy": "performance"
+      }
+    },
+    { 
+      "name": "latest",
+      "urls:": ["https://us-central1-ps-notify-api.cloudfunctions.net/api/latest"],
+      "cacheConfig": {
+          "maxSize": 1,
+          "maxAge": "1d",
+          "timeout": "2s",
+          "strategy": "performance"
+      }
+    },
+    { 
+      "name": "acknowledgements",
+      "urls:": ["https://us-central1-ps-notify-api.cloudfunctions.net/api/acknowledgements/*"],
+      "cacheConfig": {
+          "maxSize": 500,
+          "maxAge": "1d",
+          "timeout": "2s",
+          "strategy": "freshness"
       }
     }
   ]
