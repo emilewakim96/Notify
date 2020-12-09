@@ -2,7 +2,7 @@
   "$schema": "./node_modules/@angular/service-worker/config/schema.json",
   "index": "/index.html",
   "appData": {
-    "updateMessage": "Checking for updates"
+    "updateMessage": "Looking for updates"
   },
   "assetGroups": [
     {
