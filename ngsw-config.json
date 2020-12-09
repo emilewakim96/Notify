@@ -2,7 +2,7 @@
   "$schema": "./node_modules/@angular/service-worker/config/schema.json",
   "index": "/index.html",
   "appData": {
-    "updateMessage": "Added a new page you will love"
+    "updateMessage": "Checking for updates"
   },
   "assetGroups": [
     {
@@ -48,7 +48,7 @@
           "maxSize": 1,
           "maxAge": "1d",
           "timeout": "2s",
-          "strategy": "performance"
+          "strategy": "freshness"
       }
     },
     { 

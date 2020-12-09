@@ -1,10 +1,11 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { ApplicationRef, Component, OnDestroy, OnInit } from '@angular/core';
 import { AlertController, NavController, ToastController } from '@ionic/angular';
-import { Subscription } from 'rxjs';
+import { concat, interval, Subscription } from 'rxjs';
 import { EventsService } from '../events.service';
 import { EventResponse } from '../interfaces';
 import { Network } from '@ngx-pwa/offline'
 import { SwUpdate, UpdateActivatedEvent, UpdateAvailableEvent } from '@angular/service-worker';
+import { first } from 'rxjs/operators'
 
 @Component({
   selector: 'app-home',
@@ -22,6 +23,7 @@ export class HomePage implements OnInit, OnDestroy {
     private nav: NavController,
     private network: Network,
     private updater: SwUpdate,
+    private appRef: ApplicationRef,
     private toastController: ToastController,
     private alertController: AlertController) {}
 
@@ -45,8 +47,19 @@ export class HomePage implements OnInit, OnDestroy {
   }
 
   initUpdater() {
-    this.subscriptions.push(this.updater.available.subscribe( e => this.onUpdateAvailable(e)))
-    this.subscriptions.push(this.updater.activated.subscribe( e => this.onUpdateActivated(e)))
+    const updateInterval$ = interval(1 * 60 * 1000) // 1 minute
+    const appIsStable$ = this.appRef.isStable.pipe(first(isStable => isStable === true));
+    const appStableInterval$ = concat(appIsStable$, updateInterval$);
+
+    this.subscriptions.push(this.updater.available.subscribe( (e) => this.onUpdateAvailable(e)))
+    this.subscriptions.push(this.updater.activated.subscribe( (e) => this.onUpdateActivated(e)))
+    this.subscriptions.push(appStableInterval$.subscribe(() => this.checkForUpdate()));
+  }
+
+  async checkForUpdate() {
+    if (this.updater.isEnabled) {
+      await this.updater.checkForUpdate()
+    }
   }
 
   async onUpdateActivated(event: UpdateActivatedEvent) {
@@ -57,22 +70,22 @@ export class HomePage implements OnInit, OnDestroy {
     const updateMessage = event.available.appData["updateMessage"]
     console.log('A new version is available:', updateMessage)
 
-    const alert = await this .alertController.create({
+    const alert = await this.alertController.create({
       header: 'Update Available!',
-      message: `A new version of the application is available.` + 
+      message: 'A new version of the application is available.' + 
       `(Details: ${updateMessage})` +
-      `Click OK to update now.`,
+      'Click OK to update now.',
       buttons: [
         {
           text: 'Not Now',
           role: 'cancel',
           cssClass: 'secondary',
-          handler: async() => {
+          handler: async () => {
             this.showToastMessage('Update deferred')
           }
         }, {
           text: 'OK',
-          handler: async() => {
+          handler: async () => {
             await this.updater.activateUpdate()
             window.location.reload()
           }
