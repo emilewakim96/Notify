@@ -15,6 +15,9 @@
 </ion-header>
 
 <ion-content>
+  <ion-refresher slot="fixed" (ionRefresh)="doRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
   <ion-grid>
     <ion-row>
       <ion-col *ngFor="let e of getEvents()" size-xs="12" size-sm="6" size-md="4" size-lg="3" size-xl="2">

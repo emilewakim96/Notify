@@ -1,4 +1,4 @@
-import { ApplicationRef, Component, OnDestroy, OnInit } from '@angular/core';
+import { ApplicationRef, Component, OnDestroy, OnInit, ɵsetCurrentInjector } from '@angular/core';
 import { AlertController, NavController, ToastController } from '@ionic/angular';
 import { concat, interval, Subscription } from 'rxjs';
 import { EventsService } from '../events.service';
@@ -29,7 +29,9 @@ export class HomePage implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.subscriptions.push(this.eventService.getAll()
-    .subscribe(e => this.events.push(e)))
+    .subscribe(e => 
+      this.events.push(e))
+      )
 
     this.initUpdater()
   }
@@ -105,5 +107,20 @@ export class HomePage implements OnInit, OnDestroy {
     })
 
     toast.present()
+  }
+
+  async doRefresh(event) {
+    try {
+      const maxEvent = this.events.reduce((prev, current) => (prev.event.id > current.event.id) ? prev : current)
+      const maxEventId = +maxEvent.event.id + 1
+
+      const response = await this.eventService.getById(maxEventId).toPromise()
+
+      this.events.push(response)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      event.target.complete()
+    }
   }
 }
